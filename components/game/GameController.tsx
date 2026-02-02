@@ -8,6 +8,29 @@ import { GameHUD } from "./GameHUD";
 import { useGameStore } from "@/lib/game-store";
 import type { PhysicsState, ThrowData } from "@/lib/game-types";
 
+// Tron-style haptic feedback patterns
+const triggerHaptic = (type: "light" | "medium" | "heavy" | "success" | "error") => {
+  if (typeof navigator !== "undefined" && "vibrate" in navigator) {
+    switch (type) {
+      case "light":
+        navigator.vibrate(10);
+        break;
+      case "medium":
+        navigator.vibrate(25);
+        break;
+      case "heavy":
+        navigator.vibrate([50, 30, 50]);
+        break;
+      case "success":
+        navigator.vibrate([30, 50, 30, 50, 100]);
+        break;
+      case "error":
+        navigator.vibrate([100, 30, 100]);
+        break;
+    }
+  }
+};
+
 export function GameController() {
   const workerRef = useRef<Worker | null>(null);
   const animationFrameRef = useRef<number>(0);
@@ -39,11 +62,14 @@ export function GameController() {
   useEffect(() => {
     // Create worker from inline code
     const workerCode = `
+      // Tron-style physics constants
+      const BALL_SPEED = 32;           // Ball velocity units/sec
       const GRAVITY = -9.81;
-      const AIR_RESISTANCE = 0.12;
-      const ANGULAR_DAMPING = 0.18;
+      const AIR_RESISTANCE = 0.08;     // Reduced for smoother flight
+      const ANGULAR_DAMPING = 0.15;    // Slower spiral decay
       const GROUND_Y = 0.143;
       const FIXED_TIMESTEP = 1000 / 60;
+      const RELEASE_HEIGHT = 1.8;
 
       let state = {
         ball: {
@@ -64,7 +90,7 @@ export function GameController() {
         
         state.ball.velocity[1] += GRAVITY * dtSeconds;
         state.ball.velocity[0] *= 1 - AIR_RESISTANCE * dtSeconds;
-        state.ball.velocity[1] *= 1 - AIR_RESISTANCE * dtSeconds * 0.5;
+        state.ball.velocity[1] *= 1 - AIR_RESISTANCE * dtSeconds * 0.3;
         state.ball.velocity[2] *= 1 - AIR_RESISTANCE * dtSeconds;
         
         state.ball.position[0] += state.ball.velocity[0] * dtSeconds;
@@ -173,9 +199,28 @@ export function GameController() {
     };
   }, []);
 
+  // Track previous ball active state for detecting when ball lands
+  const prevBallActiveRef = useRef(ballState.isActive);
+  const hitTargetThisThrowRef = useRef(false);
+
   // Check for target hits
   useEffect(() => {
-    if (!ballState.isActive) return;
+    if (!ballState.isActive) {
+      // Ball just landed - check if it was a miss
+      if (prevBallActiveRef.current && !hitTargetThisThrowRef.current) {
+        // Ball landed without hitting any target
+        triggerHaptic("error");
+      }
+      prevBallActiveRef.current = false;
+      return;
+    }
+
+    // Ball just became active (new throw)
+    if (!prevBallActiveRef.current) {
+      hitTargetThisThrowRef.current = false;
+      triggerHaptic("medium"); // Throw feedback
+    }
+    prevBallActiveRef.current = true;
 
     const ballPos = ballState.position;
 
@@ -187,14 +232,18 @@ export function GameController() {
       const dz = ballPos[2] - target.position[2];
       const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-      if (distance < target.radius + 0.2) {
+      // Tron-style forgiving catch radius: base radius + generous buffer
+      // Closer targets are easier to hit, farther targets have larger catch zones
+      const distanceBonus = target.distance > 25 ? 1.5 : target.distance > 15 ? 1.0 : 0.5;
+      const catchRadius = target.radius + distanceBonus;
+
+      if (distance < catchRadius) {
         recordCompletion(target.id);
         updateScore(target.points);
+        hitTargetThisThrowRef.current = true;
 
-        // Haptic feedback
-        if (navigator.vibrate) {
-          navigator.vibrate([50, 30, 100]);
-        }
+        // Success haptic feedback
+        triggerHaptic("success");
       }
     });
   }, [ballState.position, ballState.isActive, targets, recordCompletion, updateScore]);
@@ -232,8 +281,9 @@ export function GameController() {
     (throwData: ThrowData) => {
       setIsThrowing(false);
 
-      // velocity now holds the power value (0-1) from the charge meter
+      // velocity is normalized 0-1 based on swipe velocity
       const power = throwData.velocity;
+      const swipeAngle = throwData.angle;
       
       if (power < 0.05) {
         setThrowAngle(0);
@@ -241,17 +291,50 @@ export function GameController() {
         return;
       }
 
-      // Calculate throw force based on power meter
-      const minForce = 8;
-      const maxForce = 28;
-      const force = minForce + power * (maxForce - minForce);
-
-      // Throw straight forward with nice arc
-      const forwardForce = -force; // Forward (negative Z)
-      const upForce = force * 0.5; // Nice arc upward
-
-      const throwForce: [number, number, number] = [0, upForce, forwardForce];
-      const spin: [number, number, number] = [5, 0, 0];
+      // Tron-style throw mechanics
+      // Ball speed is constant (32 units/sec), power affects distance
+      const BALL_SPEED = 32;
+      const minDistance = 10;  // Minimum throw distance (yards)
+      const maxDistance = 50;  // Maximum throw distance (yards)
+      
+      // Calculate target throw distance based on power
+      const throwDistance = minDistance + power * (maxDistance - minDistance);
+      
+      // Calculate flight time based on distance and ball speed
+      const flightTime = throwDistance / BALL_SPEED;
+      
+      // Tron-style arc height: 1.5 + (distance * 0.08)
+      const maxHeight = 1.5 + (throwDistance * 0.08);
+      
+      // Convert swipe angle to world-space direction
+      // Swipe angle: 0 = right, PI/2 = up, PI = left, -PI/2 = down
+      const horizontalAim = Math.cos(swipeAngle);
+      const upwardSwipeComponent = Math.max(0, Math.sin(swipeAngle));
+      
+      // Calculate velocity components to achieve the arc
+      // Forward velocity based on distance and flight time
+      const forwardVelocity = throwDistance / flightTime;
+      
+      // Vertical velocity to achieve max height at midpoint
+      // Using kinematic equation: vy = sqrt(2 * g * maxHeight)
+      const upVelocity = Math.sqrt(2 * Math.abs(-9.81) * maxHeight);
+      
+      // Apply horizontal aim with limited deviation
+      const sidewaysVelocity = horizontalAim * forwardVelocity * 0.35;
+      
+      // Forward is negative Z in Three.js
+      const throwForce: [number, number, number] = [
+        sidewaysVelocity,
+        upVelocity * (0.7 + upwardSwipeComponent * 0.3), // Arc affected by swipe direction
+        -forwardVelocity * (0.8 + upwardSwipeComponent * 0.2)
+      ];
+      
+      // Spiral spin for realistic football rotation
+      const spin: [number, number, number] = [
+        8,                        // Forward spiral
+        horizontalAim * 3,        // Slight wobble based on aim
+        power * 2                 // Spin speed based on power
+      ];
 
       workerRef.current?.postMessage({
         type: "THROW",

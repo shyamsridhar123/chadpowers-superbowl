@@ -1,5 +1,5 @@
 // Physics Worker for Chad Powers Football Game
-// Uses simplified physics simulation for ball trajectory
+// Uses Tron-style simplified physics simulation for ball trajectory
 
 interface PhysicsState {
   ball: {
@@ -17,13 +17,19 @@ interface PhysicsState {
 interface ThrowInput {
   force: [number, number, number];
   spin: [number, number, number];
+  targetDistance?: number; // Optional: distance to target for arc calculation
 }
 
+// Tron-style physics constants
+const BALL_SPEED = 32;           // Ball velocity units/sec (from Tron)
+const LEAD_FACTOR = 0.65;        // Lead targeting (65% ahead of receiver)
+const CATCH_RADIUS = 5;          // Forgiving catch zone
 const GRAVITY = -9.81;
-const AIR_RESISTANCE = 0.12;
-const ANGULAR_DAMPING = 0.18;
-const GROUND_Y = 0.143; // Ball radius
+const AIR_RESISTANCE = 0.08;     // Reduced for smoother flight
+const ANGULAR_DAMPING = 0.15;    // Slower spiral decay
+const GROUND_Y = 0.143;          // Ball radius
 const FIXED_TIMESTEP = 1000 / 60;
+const RELEASE_HEIGHT = 1.8;      // QB release point (meters)
 
 let state: PhysicsState = {
   ball: {
@@ -48,9 +54,9 @@ function stepPhysics(dt: number) {
   // Apply gravity
   state.ball.velocity[1] += GRAVITY * dtSeconds;
 
-  // Apply air resistance
+  // Apply air resistance (reduced effect on vertical for better arcs)
   state.ball.velocity[0] *= 1 - AIR_RESISTANCE * dtSeconds;
-  state.ball.velocity[1] *= 1 - AIR_RESISTANCE * dtSeconds * 0.5;
+  state.ball.velocity[1] *= 1 - AIR_RESISTANCE * dtSeconds * 0.3; // Less drag on vertical
   state.ball.velocity[2] *= 1 - AIR_RESISTANCE * dtSeconds;
 
   // Update position

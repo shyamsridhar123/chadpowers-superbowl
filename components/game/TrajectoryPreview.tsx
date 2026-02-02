@@ -16,18 +16,25 @@ export function TrajectoryPreview({
   power,
   visible,
 }: TrajectoryPreviewProps) {
-  const { points, positions } = useMemo(() => {
+  const { points } = useMemo(() => {
     if (!visible || power < 0.05) {
-      return { points: [] as THREE.Vector3[], positions: new Float32Array(0) };
+      return { points: [] as THREE.Vector3[] };
     }
 
     const gravity = -9.81;
-    const maxPower = 25;
-    const velocity = power * maxPower;
+    const minForce = 8;
+    const maxForce = 28;
+    const force = minForce + power * (maxForce - minForce);
 
-    const vx = Math.cos(angle) * velocity * 0.5;
-    const vy = Math.sin(Math.PI / 4) * velocity;
-    const vz = -Math.abs(Math.sin(angle) * velocity);
+    // Match the throw mechanics from GameController
+    // Swipe angle: 0 = right, PI/2 = up, PI = left, -PI/2 = down
+    const horizontalAim = Math.cos(angle);
+    const upwardSwipeComponent = Math.max(0, Math.sin(angle));
+    
+    // Calculate velocity components matching the actual throw
+    const vx = horizontalAim * force * 0.4; // Horizontal aim
+    const vy = force * 0.5; // Upward arc
+    const vz = -force * (0.6 + upwardSwipeComponent * 0.4); // Forward (negative Z)
 
     const pointsList: THREE.Vector3[] = [];
     const dt = 0.05;
@@ -49,14 +56,7 @@ export function TrajectoryPreview({
       if (y < 0) break;
     }
 
-    const posArray = new Float32Array(pointsList.length * 3);
-    pointsList.forEach((p, i) => {
-      posArray[i * 3] = p.x;
-      posArray[i * 3 + 1] = p.y;
-      posArray[i * 3 + 2] = p.z;
-    });
-
-    return { points: pointsList, positions: posArray };
+    return { points: pointsList };
   }, [startPosition, angle, power, visible]);
 
   if (!visible || points.length < 2) return null;

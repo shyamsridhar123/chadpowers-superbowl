@@ -10,6 +10,22 @@
 This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
 Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
 
+## Agents Quick Reference
+
+This project uses specialized AI agents for development. Use `@AgentName` to invoke:
+
+| Agent | Use For |
+|-------|---------|
+| `@ChadPowersDirector` | Multi-system features, coordination |
+| `@PhysicsEngineer` | Ball physics, throw mechanics, collisions |
+| `@GraphicsEngineer` | Rendering, WebGPU, shadows, performance |
+| `@UXEngineer` | Touch controls, joystick, gestures |
+| `@CinematicsEngineer` | Replays, camera animation |
+| `@QAEngineer` | Testing, benchmarks |
+| `@GameDeveloper` | Full-stack implementation |
+
+See `.github/copilot-instructions.md` for detailed routing rules.
+
 ## Deployment
 
 Your project is live at:

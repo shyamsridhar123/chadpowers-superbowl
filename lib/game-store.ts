@@ -73,6 +73,7 @@ export const useGameStore = create<GameStore>((set) => ({
 
   startGame: () =>
     set({
+      mode: "practice",
       isPlaying: true,
       score: 0,
       throws: 0,

@@ -86,13 +86,13 @@ export function VirtualJoystick({
     if (!container) return;
 
     const onTouchStart = (e: TouchEvent) => {
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       const touch = e.touches[0];
       handleStart(touch.clientX, touch.clientY, touch.identifier);
     };
 
     const onTouchMove = (e: TouchEvent) => {
-      e.preventDefault();
+      if (e.cancelable) e.preventDefault();
       for (let i = 0; i < e.touches.length; i++) {
         if (e.touches[i].identifier === touchIdRef.current) {
           handleMove(e.touches[i].clientX, e.touches[i].clientY);

@@ -1,6 +1,16 @@
 "use client";
 
 import { useGameStore } from "@/lib/game-store";
+import { useMemo } from "react";
+
+// Achievement thresholds and messages (Tron-style)
+function getAchievementMessage(score: number): { message: string; color: string } | null {
+  if (score >= 2800) return { message: "HALL OF FAME!", color: "#ffd700" };
+  if (score >= 2100) return { message: "PRO BOWL!", color: "#c0c0c0" };
+  if (score >= 1400) return { message: "SOLID GAME!", color: "#cd7f32" };
+  if (score >= 700) return { message: "KEEP GRINDING!", color: "#00ffff" };
+  return null;
+}
 
 interface GameHUDProps {
   onResetBall: () => void;
@@ -13,6 +23,9 @@ export function GameHUD({ onResetBall, onResetTargets, ballIsActive }: GameHUDPr
 
   const accuracy = throws > 0 ? Math.round((completions / throws) * 100) : 0;
   const targetsHit = targets.filter((t) => t.hit).length;
+
+  // Get current achievement based on score
+  const achievement = useMemo(() => getAchievementMessage(score), [score]);
 
   return (
     <>
@@ -28,6 +41,19 @@ export function GameHUD({ onResetBall, onResetTargets, ballIsActive }: GameHUDPr
             >
               {score.toLocaleString()}
             </span>
+            {/* Achievement Message */}
+            {achievement && (
+              <span
+                className="text-xs font-bold animate-pulse mt-1"
+                style={{ 
+                  fontFamily: "var(--font-display), sans-serif",
+                  color: achievement.color,
+                  textShadow: `0 0 10px ${achievement.color}`
+                }}
+              >
+                {achievement.message}
+              </span>
+            )}
           </div>
 
           {/* Game Title */}
