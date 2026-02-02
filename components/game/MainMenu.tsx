@@ -3,11 +3,15 @@
 import { useGameStore } from "@/lib/game-store";
 
 export function MainMenu() {
-  const { setMode, startGame } = useGameStore();
+  const { setMode, startGame, startChallenge } = useGameStore();
 
   const handleStartPractice = () => {
     setMode("practice");
     startGame();
+  };
+
+  const handleStartChallenge = () => {
+    startChallenge();
   };
 
   return (
@@ -82,13 +86,13 @@ export function MainMenu() {
           </button>
 
           <button
-            disabled
-            className="w-full py-4 px-8 bg-white/10 text-white/50 font-bold text-lg rounded-xl cursor-not-allowed border border-white/10"
+            onClick={handleStartChallenge}
+            className="w-full py-4 px-8 bg-gradient-to-r from-[#00ff88] to-[#00cc6a] text-black font-bold text-lg rounded-xl hover:from-[#33ff9f] hover:to-[#00dd77] transition-all duration-200 active:scale-[0.98] shadow-lg shadow-[#00ff88]/20"
             style={{ fontFamily: "var(--font-display), sans-serif" }}
           >
             CHALLENGE MODE
-            <span className="block text-xs font-normal text-white/30 mt-1">
-              Coming Soon
+            <span className="block text-xs font-normal text-black/60 mt-1">
+              Hit the receivers!
             </span>
           </button>
         </div>

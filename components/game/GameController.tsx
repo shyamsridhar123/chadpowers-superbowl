@@ -48,14 +48,24 @@ export function GameController() {
   const [throwPower, setThrowPower] = useState(0);
   const [isThrowing, setIsThrowing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Track receiver positions for collision detection
+  const receiverPositionsRef = useRef<Map<string, [number, number, number]>>(new Map());
 
   const {
     mode,
     targets,
+    receivers,
+    defenders,
     recordThrow,
     recordCompletion,
     updateScore,
     resetTargets,
+    startPlay,
+    updateReceiverProgress,
+    setReceiverState,
+    resetReceivers,
+    updateDefenderPositions,
   } = useGameStore();
 
   // Initialize physics worker
@@ -187,6 +197,14 @@ export function GameController() {
       lastTimeRef.current = time;
 
       workerRef.current?.postMessage({ type: "STEP", data: { delta } });
+      
+      // Update receiver progress in challenge mode
+      if (useGameStore.getState().mode === 'challenge') {
+        useGameStore.getState().updateReceiverProgress(delta);
+        // Update defender positions to track receivers
+        useGameStore.getState().updateDefenderPositions(receiverPositionsRef.current, delta);
+      }
+      
       animationFrameRef.current = requestAnimationFrame(gameLoop);
     };
 
@@ -203,7 +221,7 @@ export function GameController() {
   const prevBallActiveRef = useRef(ballState.isActive);
   const hitTargetThisThrowRef = useRef(false);
 
-  // Check for target hits
+  // Check for target hits (practice) and receiver catches (challenge)
   useEffect(() => {
     if (!ballState.isActive) {
       // Ball just landed - check if it was a miss
@@ -211,6 +229,12 @@ export function GameController() {
         // Ball landed without hitting any target
         triggerHaptic("error");
       }
+      
+      // Reset receivers to idle when ball JUST landed (challenge mode)
+      if (prevBallActiveRef.current && mode === 'challenge') {
+        resetReceivers();
+      }
+      
       prevBallActiveRef.current = false;
       return;
     }
@@ -224,29 +248,92 @@ export function GameController() {
 
     const ballPos = ballState.position;
 
-    targets.forEach((target) => {
-      if (target.hit) return;
+    // Practice mode: Check targets
+    if (mode === 'practice') {
+      targets.forEach((target) => {
+        if (target.hit) return;
 
-      const dx = ballPos[0] - target.position[0];
-      const dy = ballPos[1] - target.position[1];
-      const dz = ballPos[2] - target.position[2];
-      const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        const dx = ballPos[0] - target.position[0];
+        const dy = ballPos[1] - target.position[1];
+        const dz = ballPos[2] - target.position[2];
+        const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-      // Tron-style forgiving catch radius: base radius + generous buffer
-      // Closer targets are easier to hit, farther targets have larger catch zones
-      const distanceBonus = target.distance > 25 ? 1.5 : target.distance > 15 ? 1.0 : 0.5;
-      const catchRadius = target.radius + distanceBonus;
+        // Tron-style forgiving catch radius: base radius + generous buffer
+        const distanceBonus = target.distance > 25 ? 1.5 : target.distance > 15 ? 1.0 : 0.5;
+        const catchRadius = target.radius + distanceBonus;
 
-      if (distance < catchRadius) {
-        recordCompletion(target.id);
-        updateScore(target.points);
-        hitTargetThisThrowRef.current = true;
-
-        // Success haptic feedback
-        triggerHaptic("success");
-      }
-    });
-  }, [ballState.position, ballState.isActive, targets, recordCompletion, updateScore]);
+        if (distance < catchRadius) {
+          recordCompletion(target.id);
+          updateScore(target.points);
+          hitTargetThisThrowRef.current = true;
+          triggerHaptic("success");
+        }
+      });
+    }
+    
+    // Challenge mode: Check receiver catches
+    if (mode === 'challenge') {
+      receivers.forEach((receiver) => {
+        if (receiver.state !== 'running') return;
+        
+        const receiverPos = receiverPositionsRef.current.get(receiver.id);
+        if (!receiverPos) return;
+        
+        // Ball height check (receiver can catch between 0.5m and 2.2m)
+        if (ballPos[1] < 0.5 || ballPos[1] > 2.5) return;
+        
+        const dx = ballPos[0] - receiverPos[0];
+        const dz = ballPos[2] - receiverPos[2];
+        const horizontalDistance = Math.sqrt(dx * dx + dz * dz);
+        
+        if (horizontalDistance < receiver.catchRadius) {
+          // Check defender proximity for catch probability
+          let catchProbability = 1.0; // 100% catch if no defender nearby
+          
+          // Find the closest defender to this receiver
+          defenders.forEach((defender) => {
+            const defDx = defender.position[0] - receiverPos[0];
+            const defDz = defender.position[2] - receiverPos[2];
+            const defenderDistance = Math.sqrt(defDx * defDx + defDz * defDz);
+            
+            // Defender within 1 unit: 20% catch chance
+            // Defender within 2 units: 50% catch chance
+            if (defenderDistance < 1) {
+              catchProbability = Math.min(catchProbability, 0.2);
+            } else if (defenderDistance < 2) {
+              catchProbability = Math.min(catchProbability, 0.5);
+            }
+          });
+          
+          // Roll for catch based on probability
+          const catchRoll = Math.random();
+          if (catchRoll < catchProbability) {
+            // Successful catch!
+            setReceiverState(receiver.id, 'celebrating');
+            recordCompletion(receiver.id);
+            
+            // Calculate points based on route difficulty
+            const routePoints = {
+              slant: 100,
+              post: 200,
+              corner: 200,
+              go: 300,
+              out: 150,
+              curl: 100,
+              drag: 100,
+            };
+            updateScore(routePoints[receiver.route.type] || 100);
+            hitTargetThisThrowRef.current = true;
+            triggerHaptic("success");
+          } else {
+            // Defender broke up the pass!
+            setReceiverState(receiver.id, 'incomplete');
+            triggerHaptic("error");
+          }
+        }
+      });
+    }
+  }, [ballState.position, ballState.isActive, mode, targets, receivers, defenders, recordCompletion, updateScore, setReceiverState, resetReceivers]);
 
   // Handle joystick movement
   const handleJoystickMove = useCallback(
@@ -267,10 +354,22 @@ export function GameController() {
     // Player stops
   }, []);
 
+  // Track receiver positions for collision
+  const handleReceiverPositionUpdate = useCallback(
+    (id: string, position: [number, number, number]) => {
+      receiverPositionsRef.current.set(id, position);
+    },
+    []
+  );
+
   // Handle throw
   const handleThrowStart = useCallback(() => {
     setIsThrowing(true);
-  }, []);
+    // In challenge mode, start receivers running when starting to throw
+    if (mode === 'challenge') {
+      startPlay();
+    }
+  }, [mode, startPlay]);
 
   const handleThrowUpdate = useCallback((angle: number, power: number) => {
     setThrowAngle(angle);
@@ -377,6 +476,10 @@ export function GameController() {
           throwAngle={throwAngle}
           throwPower={throwPower}
           isThrowing={isThrowing}
+          receivers={receivers}
+          defenders={defenders}
+          receiverPositions={receiverPositionsRef.current}
+          onReceiverPositionUpdate={handleReceiverPositionUpdate}
         />
       </div>
 

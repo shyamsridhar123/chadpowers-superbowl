@@ -124,3 +124,19 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Challenge Mode Animations */
+@keyframes floatUp {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-100px);
+  }
+}
+
+.animate-float-up {
+  animation: floatUp 2s ease-out forwards;
+}

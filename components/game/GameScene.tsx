@@ -10,8 +10,10 @@ import { Football3D } from "./Football3D";
 import { Quarterback } from "./Quarterback";
 import { Target } from "./Target";
 import { TrajectoryPreview } from "./TrajectoryPreview";
+import { Receivers } from "./Receiver";
+import { Defenders } from "./Defender";
 import { useGameStore } from "@/lib/game-store";
-import type { PhysicsState } from "@/lib/game-types";
+import type { PhysicsState, ReceiverData, DefenderData } from "@/lib/game-types";
 
 interface GameSceneContentProps {
   playerPosition: [number, number, number];
@@ -19,6 +21,10 @@ interface GameSceneContentProps {
   throwAngle: number;
   throwPower: number;
   isThrowing: boolean;
+  receivers: ReceiverData[];
+  defenders: DefenderData[];
+  receiverPositions: Map<string, [number, number, number]>;
+  onReceiverPositionUpdate?: (id: string, position: [number, number, number]) => void;
 }
 
 function GameSceneContent({
@@ -27,10 +33,15 @@ function GameSceneContent({
   throwAngle,
   throwPower,
   isThrowing,
+  receivers,
+  defenders,
+  receiverPositions,
+  onReceiverPositionUpdate,
 }: GameSceneContentProps) {
   const { camera } = useThree();
   const targets = useGameStore((state) => state.targets);
   const showTrajectory = useGameStore((state) => state.showTrajectory);
+  const mode = useGameStore((state) => state.mode);
 
   // Camera follow player
   useFrame(() => {
@@ -76,8 +87,8 @@ function GameSceneContent({
         showTrail={true}
       />
 
-      {/* Targets */}
-      {targets.map((target) => (
+      {/* Targets (practice mode only) */}
+      {mode === 'practice' && targets.map((target) => (
         <Target
           key={target.id}
           position={target.position}
@@ -87,6 +98,23 @@ function GameSceneContent({
           distance={target.distance}
         />
       ))}
+
+      {/* Receivers (challenge mode) */}
+      {mode === 'challenge' && receivers.length > 0 && (
+        <Receivers
+          receivers={receivers}
+          onPositionUpdate={onReceiverPositionUpdate}
+          showRoutes={!ballState.isActive}
+        />
+      )}
+
+      {/* Defenders (challenge mode) */}
+      {mode === 'challenge' && defenders.length > 0 && (
+        <Defenders
+          defenders={defenders}
+          receiverPositions={receiverPositions}
+        />
+      )}
 
       {/* Trajectory preview */}
       {showTrajectory && !ballState.isActive && (
@@ -116,6 +144,10 @@ interface GameSceneProps {
   throwAngle: number;
   throwPower: number;
   isThrowing: boolean;
+  receivers: ReceiverData[];
+  defenders: DefenderData[];
+  receiverPositions: Map<string, [number, number, number]>;
+  onReceiverPositionUpdate?: (id: string, position: [number, number, number]) => void;
 }
 
 export function GameScene({
@@ -124,6 +156,10 @@ export function GameScene({
   throwAngle,
   throwPower,
   isThrowing,
+  receivers,
+  defenders,
+  receiverPositions,
+  onReceiverPositionUpdate,
 }: GameSceneProps) {
   return (
     <Canvas
@@ -149,6 +185,10 @@ export function GameScene({
         throwAngle={throwAngle}
         throwPower={throwPower}
         isThrowing={isThrowing}
+        receivers={receivers}
+        defenders={defenders}
+        receiverPositions={receiverPositions}
+        onReceiverPositionUpdate={onReceiverPositionUpdate}
       />
     </Canvas>
   );
