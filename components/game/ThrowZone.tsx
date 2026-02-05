@@ -196,17 +196,126 @@ export function ThrowZone({
       onThrowUpdateRef.current(0, 0);
     };
 
+    // Mouse event handlers for desktop support
+    const handleMouseDown = (e: MouseEvent) => {
+      e.preventDefault();
+      if (disabledRef.current) return;
+      
+      touchStartRef.current = {
+        x: e.clientX,
+        y: e.clientY,
+        time: performance.now()
+      };
+      currentTouchRef.current = {
+        x: e.clientX,
+        y: e.clientY
+      };
+      
+      setIsSwiping(true);
+      setSwipeVector({ dx: 0, dy: 0 });
+      setPower(0);
+      onThrowStartRef.current();
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!touchStartRef.current || disabledRef.current) return;
+      
+      currentTouchRef.current = {
+        x: e.clientX,
+        y: e.clientY
+      };
+      
+      const dx = e.clientX - touchStartRef.current.x;
+      const dy = e.clientY - touchStartRef.current.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+      
+      const newPower = calculatePower(distance);
+      const angle = calculateAngle(dx, dy);
+      
+      setSwipeVector({ dx, dy });
+      setPower(newPower);
+      
+      onThrowUpdateRef.current(angle, newPower);
+    };
+
+    const handleMouseUp = (e: MouseEvent) => {
+      e.preventDefault();
+      if (!touchStartRef.current || !currentTouchRef.current) {
+        setIsSwiping(false);
+        return;
+      }
+    
+    const startX = touchStartRef.current.x;
+    const startY = touchStartRef.current.y;
+    const startTime = touchStartRef.current.time;
+    
+    const endX = e.clientX;
+    const endY = e.clientY;
+    const endTime = performance.now();
+    
+    const dx = endX - startX;
+    const dy = endY - startY;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const duration = endTime - startTime;
+    
+    // Check minimum swipe distance to avoid accidental taps
+    if (distance < MIN_SWIPE_DISTANCE) {
+      setIsSwiping(false);
+      setSwipeVector({ dx: 0, dy: 0 });
+      setPower(0);
+      touchStartRef.current = null;
+      currentTouchRef.current = null;
+      onThrowUpdateRef.current(0, 0);
+      return;
+    }
+    
+    // Calculate velocity (pixels per millisecond)
+    const rawVelocity = distance / Math.max(duration, 1);
+    // Normalize velocity to 0-1 scale
+    const normalizedVelocity = Math.min(rawVelocity / MAX_VELOCITY, 1);
+    
+    // Calculate angle from swipe direction
+    const angle = calculateAngle(dx, dy);
+    
+      const throwData: ThrowData = {
+        startX,
+        startY,
+        endX,
+        endY,
+        duration,
+        velocity: normalizedVelocity,
+        angle,
+      };
+      
+      // Reset state
+      setIsSwiping(false);
+      setSwipeVector({ dx: 0, dy: 0 });
+      setPower(0);
+      touchStartRef.current = null;
+      currentTouchRef.current = null;
+      
+      onThrowEndRef.current(throwData);
+    };
+
     // Add native event listeners with passive: false to allow preventDefault
     zone.addEventListener('touchstart', handleTouchStart, { passive: false });
     zone.addEventListener('touchmove', handleTouchMove, { passive: false });
     zone.addEventListener('touchend', handleTouchEnd, { passive: false });
     zone.addEventListener('touchcancel', handleTouchCancel, { passive: false });
+    
+    // Add mouse event listeners for desktop support
+    zone.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       zone.removeEventListener('touchstart', handleTouchStart);
       zone.removeEventListener('touchmove', handleTouchMove);
       zone.removeEventListener('touchend', handleTouchEnd);
       zone.removeEventListener('touchcancel', handleTouchCancel);
+      zone.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [calculatePower, calculateAngle]);
 

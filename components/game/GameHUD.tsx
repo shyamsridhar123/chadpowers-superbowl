@@ -70,18 +70,23 @@ export function GameHUD({ onResetBall, onResetTargets, onNextPlay, ballIsActive 
     const interval = setInterval(() => {
       setDisplayTime((prev) => {
         const newTime = Math.max(0, prev - 1);
-        setTimeRemaining(newTime);
         return newTime;
       });
     }, 1000);
     
     return () => clearInterval(interval);
-  }, [mode, setTimeRemaining]);
+  }, [mode]);
 
-  // Reset display time when timeRemaining changes externally
+  // Sync display time with store when store changes externally
   useEffect(() => {
     setDisplayTime(timeRemaining);
   }, [timeRemaining]);
+  
+  // Update store time separately (not during render)
+  useEffect(() => {
+    if (mode !== 'challenge') return;
+    setTimeRemaining(displayTime);
+  }, [displayTime, mode, setTimeRemaining]);
 
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
