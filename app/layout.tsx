@@ -1,11 +1,7 @@
 import React from "react"
 import type { Metadata, Viewport } from 'next'
-import { Oswald, Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import './globals.css'
-
-const _oswald = Oswald({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
-const _inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: 'Chad Powers Football',

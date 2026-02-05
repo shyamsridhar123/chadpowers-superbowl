@@ -317,7 +317,7 @@ export function ThrowZone({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [calculatePower, calculateAngle]);
+  }, [calculatePower, calculateAngle, onThrowUpdate]);
 
   // Calculate swipe arrow rotation for display
   const swipeAngle = Math.atan2(swipeVector.dy, swipeVector.dx) * (180 / Math.PI);
