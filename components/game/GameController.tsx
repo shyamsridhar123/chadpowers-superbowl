@@ -46,6 +46,18 @@ export function GameController() {
   const [throwPower, setThrowPower] = useState(0);
   const [isThrowing, setIsThrowing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Intro cutscene state
+  const [introPlaying, setIntroPlaying] = useState(true);
+  const [introSkip, setIntroSkip] = useState(false);
+
+  const handleIntroComplete = useCallback(() => {
+    setIntroPlaying(false);
+  }, []);
+
+  const handleIntroSkip = useCallback(() => {
+    setIntroSkip(true);
+  }, []);
   
   // Track receiver positions for collision detection
   const receiverPositionsRef = useRef<Map<string, [number, number, number]>>(new Map());
@@ -504,35 +516,56 @@ export function GameController() {
           receiverPositions={receiverPositionsRef.current}
           onReceiverPositionUpdate={handleReceiverPositionUpdate}
           onFrame={handleFrame}
+          introPlaying={introPlaying}
+          introSkip={introSkip}
+          onIntroComplete={handleIntroComplete}
         />
       </div>
 
-      {/* HUD */}
-      <GameHUD
-        onResetBall={handleResetBall}
-        onResetTargets={handleResetTargets}
-        onNextPlay={handleNextPlay}
-        ballIsActive={ballState.isActive}
-      />
-
-      {/* Left control zone - Joystick */}
-      <div className="absolute bottom-8 left-8 z-10">
-        <VirtualJoystick
-          onMove={handleJoystickMove}
-          onEnd={handleJoystickEnd}
-          size={120}
+      {/* HUD - hidden during intro */}
+      {!introPlaying && (
+        <GameHUD
+          onResetBall={handleResetBall}
+          onResetTargets={handleResetTargets}
+          onNextPlay={handleNextPlay}
+          ballIsActive={ballState.isActive}
         />
-      </div>
+      )}
 
-      {/* Right control zone - Throw */}
-      <div className="absolute top-0 right-0 bottom-0 w-1/2 z-10">
-        <ThrowZone
-          onThrowStart={handleThrowStart}
-          onThrowEnd={handleThrowEnd}
-          onThrowUpdate={handleThrowUpdate}
-          disabled={ballState.isActive}
-        />
-      </div>
+      {/* Left control zone - Joystick (hidden during intro) */}
+      {!introPlaying && (
+        <div className="absolute bottom-8 left-8 z-10">
+          <VirtualJoystick
+            onMove={handleJoystickMove}
+            onEnd={handleJoystickEnd}
+            size={120}
+          />
+        </div>
+      )}
+
+      {/* Right control zone - Throw (hidden during intro) */}
+      {!introPlaying && (
+        <div className="absolute top-0 right-0 bottom-0 w-1/2 z-10">
+          <ThrowZone
+            onThrowStart={handleThrowStart}
+            onThrowEnd={handleThrowEnd}
+            onThrowUpdate={handleThrowUpdate}
+            disabled={ballState.isActive}
+          />
+        </div>
+      )}
+
+      {/* Intro cutscene skip overlay */}
+      {introPlaying && (
+        <div
+          className="absolute inset-0 z-20 flex items-end justify-center pb-12"
+          onPointerDown={handleIntroSkip}
+        >
+          <div className="text-white/60 text-sm font-medium tracking-wide animate-pulse">
+            Tap anywhere to skip
+          </div>
+        </div>
+      )}
     </div>
   );
 }

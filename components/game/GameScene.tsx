@@ -18,6 +18,7 @@ import { Target } from "./Target";
 import { TrajectoryPreview } from "./TrajectoryPreview";
 import { Receivers } from "./Receiver";
 import { Defenders } from "./Defender";
+import { IntroCutscene } from "./IntroCutscene";
 import { useGameStore } from "@/lib/game-store";
 import type { PhysicsState, ReceiverData, DefenderData } from "@/lib/game-types";
 
@@ -34,6 +35,9 @@ interface GameSceneContentProps {
   profile: DeviceProfile;
   onProfileChange: (profile: DeviceProfile) => void;
   onFrame?: (delta: number) => void;
+  introPlaying: boolean;
+  introSkip: boolean;
+  onIntroComplete: () => void;
 }
 
 function GameSceneContent({
@@ -49,6 +53,9 @@ function GameSceneContent({
   profile,
   onProfileChange,
   onFrame,
+  introPlaying,
+  introSkip,
+  onIntroComplete,
 }: GameSceneContentProps) {
   const { camera, gl } = useThree();
   const targets = useGameStore((state) => state.targets);
@@ -84,6 +91,9 @@ function GameSceneContent({
     // Call the game loop callback (physics stepping, receiver updates, etc.)
     onFrameRef.current?.(delta);
 
+    // Skip camera-follow during intro cutscene (IntroCutscene controls camera)
+    if (introPlaying) return;
+
     const targetCameraPos = new THREE.Vector3(
       playerPosition[0],
       8,
@@ -98,6 +108,11 @@ function GameSceneContent({
 
   return (
     <>
+      {/* Intro cutscene camera controller */}
+      {introPlaying && (
+        <IntroCutscene onComplete={onIntroComplete} skip={introSkip} />
+      )}
+
       {/* Lighting */}
       <ambientLight intensity={0.4} />
       <directionalLight
@@ -190,6 +205,9 @@ interface GameSceneProps {
   receiverPositions: Map<string, [number, number, number]>;
   onReceiverPositionUpdate?: (id: string, position: [number, number, number]) => void;
   onFrame?: (delta: number) => void;
+  introPlaying: boolean;
+  introSkip: boolean;
+  onIntroComplete: () => void;
 }
 
 export function GameScene({
@@ -203,6 +221,9 @@ export function GameScene({
   receiverPositions,
   onReceiverPositionUpdate,
   onFrame,
+  introPlaying,
+  introSkip,
+  onIntroComplete,
 }: GameSceneProps) {
   const [profile, setProfile] = useState(() => getDeviceProfile());
 
@@ -242,6 +263,9 @@ export function GameScene({
         profile={profile}
         onProfileChange={handleProfileChange}
         onFrame={onFrame}
+        introPlaying={introPlaying}
+        introSkip={introSkip}
+        onIntroComplete={onIntroComplete}
       />
     </Canvas>
   );
