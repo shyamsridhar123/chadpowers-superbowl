@@ -102,7 +102,7 @@ export const ROUTE_DEFINITIONS: Record<RouteType, (startX: number, startZ: numbe
       { position: [startX, 0, startZ - 3], timing: 0.2 },
       { position: [startX + (startX > 0 ? -8 : 8), 0, startZ - 15], timing: 1 },
     ],
-    duration: 2.5,
+    duration: 3.5,
   }),
   post: (startX, startZ) => ({
     type: 'post',
@@ -111,7 +111,7 @@ export const ROUTE_DEFINITIONS: Record<RouteType, (startX: number, startZ: numbe
       { position: [startX, 0, startZ - 10], timing: 0.4 },
       { position: [startX + (startX > 0 ? -6 : 6), 0, startZ - 25], timing: 1 },
     ],
-    duration: 3.5,
+    duration: 4.5,
   }),
   corner: (startX, startZ) => ({
     type: 'corner',
@@ -120,7 +120,7 @@ export const ROUTE_DEFINITIONS: Record<RouteType, (startX: number, startZ: numbe
       { position: [startX, 0, startZ - 10], timing: 0.4 },
       { position: [startX + (startX > 0 ? 8 : -8), 0, startZ - 25], timing: 1 },
     ],
-    duration: 3.5,
+    duration: 4.5,
   }),
   go: (startX, startZ) => ({
     type: 'go',
@@ -128,7 +128,7 @@ export const ROUTE_DEFINITIONS: Record<RouteType, (startX: number, startZ: numbe
       { position: [startX, 0, startZ], timing: 0 },
       { position: [startX, 0, startZ - 40], timing: 1 },
     ],
-    duration: 4.0,
+    duration: 5.0,
   }),
   out: (startX, startZ) => ({
     type: 'out',
@@ -137,7 +137,7 @@ export const ROUTE_DEFINITIONS: Record<RouteType, (startX: number, startZ: numbe
       { position: [startX, 0, startZ - 8], timing: 0.5 },
       { position: [startX + (startX > 0 ? 10 : -10), 0, startZ - 8], timing: 1 },
     ],
-    duration: 2.0,
+    duration: 3.0,
   }),
   curl: (startX, startZ) => ({
     type: 'curl',
@@ -146,7 +146,7 @@ export const ROUTE_DEFINITIONS: Record<RouteType, (startX: number, startZ: numbe
       { position: [startX, 0, startZ - 12], timing: 0.7 },
       { position: [startX, 0, startZ - 10], timing: 1 },
     ],
-    duration: 2.5,
+    duration: 3.5,
   }),
   drag: (startX, startZ) => ({
     type: 'drag',
@@ -155,7 +155,7 @@ export const ROUTE_DEFINITIONS: Record<RouteType, (startX: number, startZ: numbe
       { position: [startX, 0, startZ - 2], timing: 0.2 },
       { position: [startX + (startX > 0 ? -15 : 15), 0, startZ - 5], timing: 1 },
     ],
-    duration: 2.5,
+    duration: 3.5,
   }),
 };
 

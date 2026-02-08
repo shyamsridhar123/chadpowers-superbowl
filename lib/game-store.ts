@@ -15,7 +15,7 @@ function generateChallengeReceivers(): ReceiverData[] {
       state: 'idle',
       progress: 0,
       speed: 6,
-      catchRadius: 1.5,
+      catchRadius: 2.5,
     },
     {
       id: 'receiver-2',
@@ -24,7 +24,7 @@ function generateChallengeReceivers(): ReceiverData[] {
       state: 'idle',
       progress: 0,
       speed: 5.5,
-      catchRadius: 1.5,
+      catchRadius: 2.5,
     },
     {
       id: 'receiver-3',
@@ -33,7 +33,7 @@ function generateChallengeReceivers(): ReceiverData[] {
       state: 'idle',
       progress: 0,
       speed: 5,
-      catchRadius: 1.8,
+      catchRadius: 3.0,
     },
   ];
 }
@@ -64,8 +64,8 @@ function generateChallengeDefenders(receivers: ReceiverData[]): DefenderData[] {
       ],
       coverageType: 'man',
       assignedReceiverId: receiver.id,
-      speed: 5.2, // Slightly slower than receivers (5-6 speed)
-      reactionDelay: 0.15, // 150ms reaction delay
+      speed: 4.2, // Noticeably slower than receivers (5-6 speed)
+      reactionDelay: 0.5, // 500ms reaction delay gives receiver time to separate
     });
   }
   
@@ -77,7 +77,7 @@ function generatePracticeTargets(): Target[] {
     {
       id: "target-10",
       position: [0, 1.5, -10],
-      radius: 1.5,
+      radius: 2.0,
       distance: 10,
       hit: false,
       points: 100,
@@ -85,7 +85,7 @@ function generatePracticeTargets(): Target[] {
     {
       id: "target-20",
       position: [-3, 1.5, -20],
-      radius: 1.2,
+      radius: 1.8,
       distance: 20,
       hit: false,
       points: 200,
@@ -93,7 +93,7 @@ function generatePracticeTargets(): Target[] {
     {
       id: "target-30",
       position: [3, 1.5, -30],
-      radius: 1.0,
+      radius: 1.5,
       distance: 30,
       hit: false,
       points: 300,
@@ -101,7 +101,7 @@ function generatePracticeTargets(): Target[] {
     {
       id: "target-40",
       position: [0, 1.5, -40],
-      radius: 0.8,
+      radius: 1.2,
       distance: 40,
       hit: false,
       points: 500,

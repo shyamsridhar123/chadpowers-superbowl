@@ -11,11 +11,11 @@ interface ThrowZoneProps {
 }
 
 // Minimum swipe distance to register as a throw (pixels)
-const MIN_SWIPE_DISTANCE = 30;
+const MIN_SWIPE_DISTANCE = 12;
 // Maximum distance for full power (pixels)
-const MAX_SWIPE_DISTANCE = 300;
+const MAX_SWIPE_DISTANCE = 180;
 // Maximum velocity for full power (pixels per millisecond)
-const MAX_VELOCITY = 2.0;
+const MAX_VELOCITY = 0.8;
 
 export function ThrowZone({
   onThrowStart,
@@ -149,40 +149,45 @@ export function ThrowZone({
       setPower(0);
       touchStartRef.current = null;
       currentTouchRef.current = null;
-      onThrowUpdate(0, 0);
+      onThrowUpdateRef.current(0, 0);
       return;
     }
-    
-    // Calculate velocity (pixels per millisecond)
+
+    // Distance-based power (matches visual feedback the user sees)
+    const distancePower = Math.min(distance / MAX_SWIPE_DISTANCE, 1);
+
+    // Velocity bonus (rewards quick flicks)
     const rawVelocity = distance / Math.max(duration, 1);
-    // Normalize velocity to 0-1 scale
-    const normalizedVelocity = Math.min(rawVelocity / MAX_VELOCITY, 1);
-    
+    const velocityBonus = Math.min(rawVelocity / MAX_VELOCITY, 1);
+
+    // Blend: distance is primary (matches visuals), velocity adds bonus
+    const blendedPower = Math.min(distancePower * 0.5 + velocityBonus * 0.5, 1);
+
     // Calculate angle from swipe direction
     const angle = calculateAngle(dx, dy);
-    
-    // Haptic feedback on throw
+
+    // Haptic feedback scaled to power
     if (navigator.vibrate) {
-      navigator.vibrate([20, 10, 20]);
+      navigator.vibrate(blendedPower > 0.6 ? [20, 10, 20] : [15]);
     }
-    
+
       const throwData: ThrowData = {
         startX,
         startY,
         endX,
         endY,
         duration,
-        velocity: normalizedVelocity,
+        velocity: blendedPower,
         angle,
       };
-      
+
       // Reset state
       setIsSwiping(false);
       setSwipeVector({ dx: 0, dy: 0 });
       setPower(0);
       touchStartRef.current = null;
       currentTouchRef.current = null;
-      
+
       onThrowEndRef.current(throwData);
     };
 
@@ -268,22 +273,27 @@ export function ThrowZone({
       onThrowUpdateRef.current(0, 0);
       return;
     }
-    
-    // Calculate velocity (pixels per millisecond)
+
+    // Distance-based power (matches visual feedback the user sees)
+    const distancePower = Math.min(distance / MAX_SWIPE_DISTANCE, 1);
+
+    // Velocity bonus (rewards quick flicks)
     const rawVelocity = distance / Math.max(duration, 1);
-    // Normalize velocity to 0-1 scale
-    const normalizedVelocity = Math.min(rawVelocity / MAX_VELOCITY, 1);
-    
+    const velocityBonus = Math.min(rawVelocity / MAX_VELOCITY, 1);
+
+    // Blend: distance is primary (matches visuals), velocity adds bonus
+    const blendedPower = Math.min(distancePower * 0.5 + velocityBonus * 0.5, 1);
+
     // Calculate angle from swipe direction
     const angle = calculateAngle(dx, dy);
-    
+
       const throwData: ThrowData = {
         startX,
         startY,
         endX,
         endY,
         duration,
-        velocity: normalizedVelocity,
+        velocity: blendedPower,
         angle,
       };
       

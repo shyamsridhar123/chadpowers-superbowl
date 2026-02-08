@@ -199,6 +199,24 @@ export function GameController() {
   // Track previous ball active state for detecting when ball lands
   const prevBallActiveRef = useRef(ballState.isActive);
   const hitTargetThisThrowRef = useRef(false);
+  const autoResetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-reset ball after it lands
+  useEffect(() => {
+    if (!ballState.isActive && prevBallActiveRef.current) {
+      // Ball just landed — auto-reset after a brief delay
+      autoResetTimerRef.current = setTimeout(() => {
+        workerRef.current?.postMessage({ type: "RESET_BALL" });
+      }, 1200);
+    }
+    if (ballState.isActive && autoResetTimerRef.current) {
+      clearTimeout(autoResetTimerRef.current);
+      autoResetTimerRef.current = null;
+    }
+    return () => {
+      if (autoResetTimerRef.current) clearTimeout(autoResetTimerRef.current);
+    };
+  }, [ballState.isActive]);
 
   // Check for target hits (practice) and receiver catches (challenge)
   useEffect(() => {
@@ -237,8 +255,8 @@ export function GameController() {
         const dz = ballPos[2] - target.position[2];
         const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
-        // Tron-style forgiving catch radius: base radius + generous buffer
-        const distanceBonus = target.distance > 25 ? 1.5 : target.distance > 15 ? 1.0 : 0.5;
+        // Forgiving catch radius: base radius + generous distance bonus
+        const distanceBonus = target.distance > 25 ? 2.5 : target.distance > 15 ? 2.0 : 1.5;
         const catchRadius = target.radius + distanceBonus;
 
         if (distance < catchRadius) {
@@ -258,8 +276,8 @@ export function GameController() {
         const receiverPos = receiverPositionsRef.current.get(receiver.id);
         if (!receiverPos) return;
         
-        // Ball height check (receiver can catch between 0.5m and 2.2m)
-        if (ballPos[1] < 0.5 || ballPos[1] > 2.5) return;
+        // Ball height check (receiver can catch between ground and overhead)
+        if (ballPos[1] < 0.2 || ballPos[1] > 3.5) return;
         
         const dx = ballPos[0] - receiverPos[0];
         const dz = ballPos[2] - receiverPos[2];
@@ -275,12 +293,12 @@ export function GameController() {
             const defDz = defender.position[2] - receiverPos[2];
             const defenderDistance = Math.sqrt(defDx * defDx + defDz * defDz);
             
-            // Defender within 1 unit: 20% catch chance
-            // Defender within 2 units: 50% catch chance
+            // Defender within 1 unit: 60% catch chance
+            // Defender within 2 units: 85% catch chance
             if (defenderDistance < 1) {
-              catchProbability = Math.min(catchProbability, 0.2);
+              catchProbability = Math.min(catchProbability, 0.6);
             } else if (defenderDistance < 2) {
-              catchProbability = Math.min(catchProbability, 0.5);
+              catchProbability = Math.min(catchProbability, 0.85);
             }
           });
           
@@ -375,52 +393,56 @@ export function GameController() {
     (throwData: ThrowData) => {
       setIsThrowing(false);
 
-      // velocity is normalized 0-1 based on swipe velocity
-      const power = throwData.velocity;
+      // velocity is blended from swipe distance + velocity (0-1)
+      const rawPower = throwData.velocity;
       const swipeAngle = throwData.angle;
-      
-      if (power < 0.05) {
+
+      if (rawPower < 0.01) {
         setThrowAngle(0);
         setThrowPower(0);
         return;
       }
 
+      // Apply power curve: sqrt makes low/mid swipes feel punchier
+      // Floor at 0.25 so even a light swipe produces a visible throw
+      const power = Math.max(0.25, Math.pow(rawPower, 0.6));
+
       // Tron-style throw mechanics
-      // Ball speed is constant (32 units/sec), power affects distance
+      // Power controls distance; ball speed adjusts to reach target
       const BALL_SPEED = 32;
-      const minDistance = 10;  // Minimum throw distance (yards)
+      const minDistance = 8;   // Minimum throw distance (yards)
       const maxDistance = 50;  // Maximum throw distance (yards)
-      
+
       // Calculate target throw distance based on power
       const throwDistance = minDistance + power * (maxDistance - minDistance);
-      
+
       // Calculate flight time based on distance and ball speed
       const flightTime = throwDistance / BALL_SPEED;
-      
-      // Tron-style arc height: 1.5 + (distance * 0.08)
+
+      // Arc height scales with distance
       const maxHeight = 1.5 + (throwDistance * 0.08);
-      
+
       // Convert swipe angle to world-space direction
-      // Swipe angle: 0 = right, PI/2 = up, PI = left, -PI/2 = down
+      // Swipe up (PI/2) → forward (-Z), swipe left/right → lateral aim
       const horizontalAim = Math.cos(swipeAngle);
-      const upwardSwipeComponent = Math.max(0, Math.sin(swipeAngle));
-      
-      // Calculate velocity components to achieve the arc
+      const upwardComponent = Math.max(0, Math.sin(swipeAngle));
+      // Treat any mostly-upward swipe as fully forward
+      const forwardBias = Math.max(upwardComponent, 0.6);
+
       // Forward velocity based on distance and flight time
       const forwardVelocity = throwDistance / flightTime;
-      
+
       // Vertical velocity to achieve max height at midpoint
-      // Using kinematic equation: vy = sqrt(2 * g * maxHeight)
-      const upVelocity = Math.sqrt(2 * Math.abs(-9.81) * maxHeight);
-      
-      // Apply horizontal aim with limited deviation
-      const sidewaysVelocity = horizontalAim * forwardVelocity * 0.35;
-      
+      const upVelocity = Math.sqrt(2 * 9.81 * maxHeight);
+
+      // Lateral aim scales with swipe angle
+      const sidewaysVelocity = horizontalAim * forwardVelocity * 0.6;
+
       // Forward is negative Z in Three.js
       const throwForce: [number, number, number] = [
         sidewaysVelocity,
-        upVelocity * (0.7 + upwardSwipeComponent * 0.3), // Arc affected by swipe direction
-        -forwardVelocity * (0.8 + upwardSwipeComponent * 0.2)
+        upVelocity,
+        -forwardVelocity * forwardBias
       ];
       
       // Spiral spin for realistic football rotation
