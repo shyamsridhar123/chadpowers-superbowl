@@ -86,6 +86,8 @@ Scene hierarchy in `GameScene.tsx`:
 | render, webgpu, three.js, fps, graphics, shader, LOD, shadows | `GraphicsEngineer` | `GameScene.tsx`, `Stadium.tsx`, `Football3D.tsx` |
 | touch, swipe, joystick, gesture, controls, haptic, mobile | `UXEngineer` | `VirtualJoystick.tsx`, `ThrowZone.tsx` |
 | replay, camera, cinematic, animation, cutscene, theatre.js | `CinematicsEngineer` | Future replay system |
+| fps, memory, battery, thermal, adaptive quality, profiling | `PerformanceMonitor` | Performance monitoring, quality tiers |
+| keyboard, mouse, aria, screen reader, colorblind, accessibility | `AccessibilityEngineer` | Inclusive design, alt controls |
 | test, bug, qa, playwright, benchmark, validate | `QAEngineer` | Test files, performance validation |
 | full feature, multi-system, unclear domain | `GameDeveloper` | Cross-cutting implementation |
 
@@ -114,6 +116,9 @@ Load skills from `.github/skills/` before implementing:
 - `threejs-webgpu-rendering` - Renderer config, LOD
 - `game-performance-optimization` - FPS monitoring, adaptive quality
 - `theatrejs-cinematics` - Replay timeline, camera animation
+- `testing-strategy` - Vitest + Playwright test setup
+- `error-handling` - Error boundaries, worker recovery
+- `state-persistence` - localStorage, IndexedDB, PWA
 
 ## Do's and Don'ts
 

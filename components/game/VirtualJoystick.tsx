@@ -18,6 +18,11 @@ export function VirtualJoystick({
   const [knobPosition, setKnobPosition] = useState({ x: 0, y: 0 });
   const centerRef = useRef({ x: 0, y: 0 });
   const touchIdRef = useRef<number | null>(null);
+  const isActiveRef = useRef(false);
+  const onMoveRef = useRef(onMove);
+  const onEndRef = useRef(onEnd);
+  onMoveRef.current = onMove;
+  onEndRef.current = onEnd;
 
   const maxDistance = size / 2 - 20;
 
@@ -32,6 +37,7 @@ export function VirtualJoystick({
       };
 
       touchIdRef.current = touchId ?? null;
+      isActiveRef.current = true;
       setIsActive(true);
 
       const dx = clientX - centerRef.current.x;
@@ -44,17 +50,14 @@ export function VirtualJoystick({
       const clampedY = Math.sin(angle) * clampedDistance;
 
       setKnobPosition({ x: clampedX, y: clampedY });
-
-      const normalizedX = clampedX / maxDistance;
-      const normalizedY = clampedY / maxDistance;
-      onMove(normalizedX, normalizedY);
+      onMoveRef.current(clampedX / maxDistance, clampedY / maxDistance);
     },
-    [maxDistance, onMove]
+    [maxDistance]
   );
 
   const handleMove = useCallback(
     (clientX: number, clientY: number) => {
-      if (!isActive) return;
+      if (!isActiveRef.current) return;
 
       const dx = clientX - centerRef.current.x;
       const dy = clientY - centerRef.current.y;
@@ -66,20 +69,18 @@ export function VirtualJoystick({
       const clampedY = Math.sin(angle) * clampedDistance;
 
       setKnobPosition({ x: clampedX, y: clampedY });
-
-      const normalizedX = clampedX / maxDistance;
-      const normalizedY = clampedY / maxDistance;
-      onMove(normalizedX, normalizedY);
+      onMoveRef.current(clampedX / maxDistance, clampedY / maxDistance);
     },
-    [isActive, maxDistance, onMove]
+    [maxDistance]
   );
 
   const handleEnd = useCallback(() => {
+    isActiveRef.current = false;
     setIsActive(false);
     setKnobPosition({ x: 0, y: 0 });
     touchIdRef.current = null;
-    onEnd();
-  }, [onEnd]);
+    onEndRef.current();
+  }, []);
 
   useEffect(() => {
     const container = containerRef.current;

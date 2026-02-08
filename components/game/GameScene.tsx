@@ -1,9 +1,15 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback, useState, useMemo } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, PerspectiveCamera } from "@react-three/drei";
 import * as THREE from "three";
+import {
+  detectDeviceTier,
+  getDeviceProfile,
+  FPSMonitor,
+  type DeviceProfile,
+} from "@/lib/performance";
 
 import { Stadium } from "./Stadium";
 import { Football3D } from "./Football3D";
@@ -25,6 +31,9 @@ interface GameSceneContentProps {
   defenders: DefenderData[];
   receiverPositions: Map<string, [number, number, number]>;
   onReceiverPositionUpdate?: (id: string, position: [number, number, number]) => void;
+  profile: DeviceProfile;
+  onProfileChange: (profile: DeviceProfile) => void;
+  onFrame?: (delta: number) => void;
 }
 
 function GameSceneContent({
@@ -37,14 +46,44 @@ function GameSceneContent({
   defenders,
   receiverPositions,
   onReceiverPositionUpdate,
+  profile,
+  onProfileChange,
+  onFrame,
 }: GameSceneContentProps) {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
   const targets = useGameStore((state) => state.targets);
   const showTrajectory = useGameStore((state) => state.showTrajectory);
   const mode = useGameStore((state) => state.mode);
 
-  // Camera follow player
+  // FPS monitoring with auto tier adjustment
+  const fpsMonitorRef = useRef(
+    new FPSMonitor(profile.tier, onProfileChange)
+  );
+  const lastFrameTimeRef = useRef(performance.now());
+
+  // Apply pixel ratio cap based on device profile
+  useEffect(() => {
+    const cappedRatio = Math.min(
+      window.devicePixelRatio,
+      profile.maxPixelRatio
+    );
+    gl.setPixelRatio(cappedRatio);
+  }, [gl, profile.maxPixelRatio]);
+
+  // Keep onFrame ref current to avoid re-renders
+  const onFrameRef = useRef(onFrame);
+  onFrameRef.current = onFrame;
+
+  // Camera follow player + FPS recording + game loop
   useFrame(() => {
+    const now = performance.now();
+    const delta = now - lastFrameTimeRef.current;
+    lastFrameTimeRef.current = now;
+    fpsMonitorRef.current.recordFrame(delta);
+
+    // Call the game loop callback (physics stepping, receiver updates, etc.)
+    onFrameRef.current?.(delta);
+
     const targetCameraPos = new THREE.Vector3(
       playerPosition[0],
       8,
@@ -64,8 +103,10 @@ function GameSceneContent({
       <directionalLight
         position={[20, 30, 10]}
         intensity={1.5}
-        castShadow
-        shadow-mapSize={[2048, 2048]}
+        castShadow={profile.shadows}
+        shadow-mapSize={
+          profile.shadows ? [profile.shadowMapSize, profile.shadowMapSize] : undefined
+        }
         shadow-camera-far={100}
         shadow-camera-left={-50}
         shadow-camera-right={50}
@@ -133,7 +174,7 @@ function GameSceneContent({
       </mesh>
 
       {/* Fog for depth */}
-      <fog attach="fog" args={["#0a1628", 50, 150]} />
+      <fog attach="fog" args={["#0a1628", profile.fogDistance[0], profile.fogDistance[1]]} />
     </>
   );
 }
@@ -148,6 +189,7 @@ interface GameSceneProps {
   defenders: DefenderData[];
   receiverPositions: Map<string, [number, number, number]>;
   onReceiverPositionUpdate?: (id: string, position: [number, number, number]) => void;
+  onFrame?: (delta: number) => void;
 }
 
 export function GameScene({
@@ -160,15 +202,23 @@ export function GameScene({
   defenders,
   receiverPositions,
   onReceiverPositionUpdate,
+  onFrame,
 }: GameSceneProps) {
+  const [profile, setProfile] = useState(() => getDeviceProfile());
+
+  const handleProfileChange = useCallback((newProfile: DeviceProfile) => {
+    setProfile(newProfile);
+  }, []);
+
   return (
     <Canvas
-      shadows
+      shadows={profile.shadows}
       gl={{
-        antialias: true,
+        antialias: profile.antialias,
         powerPreference: "high-performance",
         alpha: false,
       }}
+      dpr={[1, profile.maxPixelRatio]}
       style={{ background: "#0a1628" }}
     >
       <PerspectiveCamera
@@ -189,6 +239,9 @@ export function GameScene({
         defenders={defenders}
         receiverPositions={receiverPositions}
         onReceiverPositionUpdate={onReceiverPositionUpdate}
+        profile={profile}
+        onProfileChange={handleProfileChange}
+        onFrame={onFrame}
       />
     </Canvas>
   );

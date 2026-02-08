@@ -33,8 +33,6 @@ const triggerHaptic = (type: "light" | "medium" | "heavy" | "success" | "error")
 
 export function GameController() {
   const workerRef = useRef<Worker | null>(null);
-  const animationFrameRef = useRef<number>(0);
-  const lastTimeRef = useRef<number>(0);
 
   const [playerPosition, setPlayerPosition] = useState<[number, number, number]>([0, 0, 0]);
   const [ballState, setBallState] = useState<PhysicsState["ball"]>({
@@ -191,27 +189,7 @@ export function GameController() {
     workerRef.current.postMessage({ type: "INIT" });
     setIsLoading(false);
 
-    // Game loop
-    const gameLoop = (time: number) => {
-      const delta = lastTimeRef.current ? time - lastTimeRef.current : 16.67;
-      lastTimeRef.current = time;
-
-      workerRef.current?.postMessage({ type: "STEP", data: { delta } });
-      
-      // Update receiver progress in challenge mode
-      if (useGameStore.getState().mode === 'challenge') {
-        useGameStore.getState().updateReceiverProgress(delta);
-        // Update defender positions to track receivers
-        useGameStore.getState().updateDefenderPositions(receiverPositionsRef.current, delta);
-      }
-      
-      animationFrameRef.current = requestAnimationFrame(gameLoop);
-    };
-
-    animationFrameRef.current = requestAnimationFrame(gameLoop);
-
     return () => {
-      cancelAnimationFrame(animationFrameRef.current);
       workerRef.current?.terminate();
       URL.revokeObjectURL(workerUrl);
     };
@@ -334,6 +312,22 @@ export function GameController() {
       });
     }
   }, [ballState.position, ballState.isActive, mode, targets, receivers, defenders, recordCompletion, updateScore, setReceiverState, resetReceivers]);
+
+  // Game loop callback - called from R3F useFrame via GameScene
+  const handleFrame = useCallback(
+    (delta: number) => {
+      workerRef.current?.postMessage({ type: "STEP", data: { delta } });
+
+      if (useGameStore.getState().mode === "challenge") {
+        useGameStore.getState().updateReceiverProgress(delta);
+        useGameStore.getState().updateDefenderPositions(
+          receiverPositionsRef.current,
+          delta
+        );
+      }
+    },
+    []
+  );
 
   // Handle joystick movement
   const handleJoystickMove = useCallback(
@@ -480,6 +474,7 @@ export function GameController() {
           defenders={defenders}
           receiverPositions={receiverPositionsRef.current}
           onReceiverPositionUpdate={handleReceiverPositionUpdate}
+          onFrame={handleFrame}
         />
       </div>
 

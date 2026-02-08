@@ -29,6 +29,14 @@ handoffs:
     agent: QAEngineer
     prompt: Hand off to QA engineer for testing and benchmarking.
     send: true
+  - label: Performance Monitoring
+    agent: PerformanceMonitor
+    prompt: Hand off to performance monitor for FPS tracking, memory profiling, and adaptive quality.
+    send: true
+  - label: Accessibility
+    agent: AccessibilityEngineer
+    prompt: Hand off to accessibility engineer for keyboard controls, ARIA, and inclusive design.
+    send: true
 ---
 
 # Chad Powers Game Director
@@ -54,12 +62,16 @@ You are the **Master Game Director** for the Chad Powers mobile football game. Y
 | **CinematicsEngineer** | Replays, camera animation | `theatrejs-cinematics` |
 | **GameDeveloper** | Full-stack implementation | All skills |
 | **QAEngineer** | Testing, Playwright MCP | Playwright browser tools |
+| **PerformanceMonitor** | FPS, memory, battery, quality | `game-performance-optimization` |
+| **AccessibilityEngineer** | Keyboard, ARIA, contrast | `error-handling` |
 
 ## Routing Keywords
 
 - **PhysicsEngineer:** physics, rapier, collision, ball, throw, impulse, trajectory
-- **GraphicsEngineer:** render, webgpu, three.js, performance, fps, graphics, shader
+- **GraphicsEngineer:** render, webgpu, three.js, graphics, shader, LOD, shadows
 - **UXEngineer:** touch, swipe, joystick, gesture, controls, haptic, mobile
 - **CinematicsEngineer:** replay, camera, cinematic, animation, cutscene
+- **PerformanceMonitor:** fps, memory, battery, thermal, adaptive quality, profiling, performance
+- **AccessibilityEngineer:** keyboard, mouse, aria, screen reader, colorblind, contrast, accessibility
 - **GameDeveloper:** implement, build, create, feature, component
 - **QAEngineer:** test, bug, qa, playwright, benchmark, validate
