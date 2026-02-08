@@ -1,7 +1,7 @@
 "use client";
 
 import { useGameStore } from "@/lib/game-store";
-import { useMemo, useEffect, useState } from "react";
+import { useMemo, useEffect, useState, useRef } from "react";
 import type { PlayStatus, BonusIndicator } from "@/lib/game-types";
 
 // Achievement thresholds and messages (Tron-style)
@@ -61,32 +61,26 @@ export function GameHUD({ onResetBall, onResetTargets, onNextPlay, ballIsActive 
   // Get current achievement based on score
   const achievement = useMemo(() => getAchievementMessage(score), [score]);
 
-  // Timer countdown for challenge mode
-  const [displayTime, setDisplayTime] = useState(timeRemaining);
-  
-  useEffect(() => {
-    if (mode !== 'challenge') return;
-    
-    const interval = setInterval(() => {
-      setDisplayTime((prev) => {
-        const newTime = Math.max(0, prev - 1);
-        return newTime;
-      });
-    }, 1000);
-    
-    return () => clearInterval(interval);
-  }, [mode]);
+  // Timer countdown for challenge mode - drives store directly, no local state
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Sync display time with store when store changes externally
   useEffect(() => {
-    setDisplayTime(timeRemaining);
-  }, [timeRemaining]);
-  
-  // Update store time separately (not during render)
-  useEffect(() => {
-    if (mode !== 'challenge') return;
-    setTimeRemaining(displayTime);
-  }, [displayTime, mode, setTimeRemaining]);
+    if (mode !== 'challenge') {
+      if (timerRef.current) clearInterval(timerRef.current);
+      return;
+    }
+
+    timerRef.current = setInterval(() => {
+      const current = useGameStore.getState().timeRemaining;
+      if (current > 0) {
+        setTimeRemaining(current - 1);
+      }
+    }, 1000);
+
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [mode, setTimeRemaining]);
 
   // Format time as MM:SS
   const formatTime = (seconds: number) => {
@@ -143,13 +137,13 @@ export function GameHUD({ onResetBall, onResetTargets, onNextPlay, ballIsActive 
           <div className="flex flex-col">
             <span className="text-xs text-white/60 uppercase tracking-wider">Play Clock</span>
             <span
-              className={`text-3xl font-bold tabular-nums ${displayTime <= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}
-              style={{ 
+              className={`text-3xl font-bold tabular-nums ${timeRemaining <= 10 ? 'text-red-500 animate-pulse' : 'text-white'}`}
+              style={{
                 fontFamily: "var(--font-display), sans-serif",
-                textShadow: displayTime <= 10 ? '0 0 15px #ff0000' : 'none'
+                textShadow: timeRemaining <= 10 ? '0 0 15px #ff0000' : 'none'
               }}
             >
-              {formatTime(displayTime)}
+              {formatTime(timeRemaining)}
             </span>
           </div>
 
@@ -399,7 +393,7 @@ export function GameHUD({ onResetBall, onResetTargets, onNextPlay, ballIsActive 
       )}
 
       {/* Time's Up Overlay */}
-      {displayTime === 0 && (
+      {timeRemaining === 0 && (
         <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none bg-black/60">
           <div className="bg-black/90 backdrop-blur-md rounded-2xl p-8 text-center border-2 border-[#ffd700] animate-in zoom-in-50 duration-300">
             <div

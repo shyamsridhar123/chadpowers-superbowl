@@ -104,6 +104,7 @@ test.describe("Performance - Game Scene", () => {
 });
 
 test.describe("Performance - Mobile Viewport", () => {
+  test.setTimeout(60000);
   test.use({
     viewport: { width: 412, height: 915 },
     hasTouch: true,

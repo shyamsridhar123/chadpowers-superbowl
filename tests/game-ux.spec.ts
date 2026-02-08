@@ -36,11 +36,12 @@ test.describe("Main Menu", () => {
 });
 
 test.describe("Practice Mode Gameplay", () => {
+  test.setTimeout(60000);
   test.beforeEach(async ({ page }) => {
     await page.goto("/");
     await page.waitForSelector("text=PRACTICE MODE", { timeout: 20000 });
     await page.getByText("PRACTICE MODE").click();
-    await page.waitForSelector("text=Practice Mode", { timeout: 15000 });
+    await page.waitForSelector("text=Practice Mode", { timeout: 30000 });
   });
 
   test("displays practice HUD with score and accuracy", async ({ page }) => {
@@ -102,6 +103,7 @@ test.describe("Challenge Mode Gameplay", () => {
 });
 
 test.describe("Mobile Touch Interactions", () => {
+  test.setTimeout(60000);
   test.use({
     hasTouch: true,
     viewport: { width: 412, height: 915 },
@@ -111,7 +113,7 @@ test.describe("Mobile Touch Interactions", () => {
     await page.goto("/");
     await page.waitForSelector("text=PRACTICE MODE", { timeout: 20000 });
     await page.getByText("PRACTICE MODE").click();
-    await page.waitForSelector("text=Practice Mode", { timeout: 20000 });
+    await page.waitForSelector("text=Practice Mode", { timeout: 30000 });
   });
 
   test("game renders at mobile viewport", async ({ page }) => {

@@ -64,6 +64,7 @@ export function GameController() {
     setReceiverState,
     resetReceivers,
     updateDefenderPositions,
+    nextPlay,
   } = useGameStore();
 
   // Initialize physics worker
@@ -452,6 +453,12 @@ export function GameController() {
     workerRef.current?.postMessage({ type: "RESET_BALL" });
   }, [resetTargets]);
 
+  // Next play (challenge mode)
+  const handleNextPlay = useCallback(() => {
+    nextPlay();
+    workerRef.current?.postMessage({ type: "RESET_BALL" });
+  }, [nextPlay]);
+
   if (isLoading) {
     return (
       <div className="fixed inset-0 bg-[#0a1628] flex items-center justify-center">
@@ -482,6 +489,7 @@ export function GameController() {
       <GameHUD
         onResetBall={handleResetBall}
         onResetTargets={handleResetTargets}
+        onNextPlay={handleNextPlay}
         ballIsActive={ballState.isActive}
       />
 
