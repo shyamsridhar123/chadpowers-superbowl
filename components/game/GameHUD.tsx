@@ -41,11 +41,11 @@ interface GameHUDProps {
 }
 
 export function GameHUD({ onResetBall, onResetTargets, onNextPlay, ballIsActive }: GameHUDProps) {
-  const { 
-    score, 
-    throws, 
-    completions, 
-    targets, 
+  const {
+    score,
+    throws,
+    completions,
+    targets,
     mode,
     receivers,
     playStatus,
@@ -53,6 +53,7 @@ export function GameHUD({ onResetBall, onResetTargets, onNextPlay, ballIsActive 
     bonusIndicators,
     timeRemaining,
     setTimeRemaining,
+    startCelebration,
   } = useGameStore();
 
   const accuracy = throws > 0 ? Math.round((completions / throws) * 100) : 0;
@@ -110,7 +111,7 @@ export function GameHUD({ onResetBall, onResetTargets, onNextPlay, ballIsActive 
 
   // Render practice mode HUD
   if (mode === 'practice') {
-    return <PracticeHUD 
+    return <PracticeHUD
       score={score}
       throws={throws}
       completions={completions}
@@ -121,6 +122,7 @@ export function GameHUD({ onResetBall, onResetTargets, onNextPlay, ballIsActive 
       ballIsActive={ballIsActive}
       onResetBall={onResetBall}
       onResetTargets={onResetTargets}
+      onTouchdown={() => startCelebration('touchdown')}
     />;
   }
 
@@ -392,7 +394,7 @@ export function GameHUD({ onResetBall, onResetTargets, onNextPlay, ballIsActive 
         </div>
       )}
 
-      {/* Time's Up Overlay */}
+      {/* Time's Up Overlay - triggers celebration */}
       {timeRemaining === 0 && (
         <div className="absolute inset-0 z-40 flex items-center justify-center pointer-events-none bg-black/60">
           <div className="bg-black/90 backdrop-blur-md rounded-2xl p-8 text-center border-2 border-[#ffd700] animate-in zoom-in-50 duration-300">
@@ -413,10 +415,10 @@ export function GameHUD({ onResetBall, onResetTargets, onNextPlay, ballIsActive 
               {completions}/{throws} completions ({accuracy}% accuracy)
             </div>
             <button
-              onClick={onResetTargets}
+              onClick={() => startCelebration('times_up')}
               className="mt-6 px-6 py-3 bg-[#ffd700] text-black font-bold rounded-lg hover:bg-[#ffed4a] transition-colors pointer-events-auto active:scale-95"
             >
-              Play Again
+              See Results
             </button>
           </div>
         </div>
@@ -485,6 +487,7 @@ interface PracticeHUDProps {
   ballIsActive: boolean;
   onResetBall: () => void;
   onResetTargets: () => void;
+  onTouchdown: () => void;
 }
 
 function PracticeHUD({
@@ -498,6 +501,7 @@ function PracticeHUD({
   ballIsActive,
   onResetBall,
   onResetTargets,
+  onTouchdown,
 }: PracticeHUDProps) {
   return (
     <>
@@ -665,7 +669,7 @@ function PracticeHUD({
         </button>
       </div>
 
-      {/* All targets hit celebration */}
+      {/* All targets hit - trigger celebration scene */}
       {targetsHit === targets.length && targets.length > 0 && (
         <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none">
           <div className="bg-black/80 backdrop-blur-md rounded-2xl p-8 text-center animate-in zoom-in-50 duration-300">
@@ -686,10 +690,10 @@ function PracticeHUD({
               {completions}/{throws} throws ({accuracy}% accuracy)
             </div>
             <button
-              onClick={onResetTargets}
+              onClick={onTouchdown}
               className="mt-6 px-6 py-3 bg-[#ffd700] text-black font-bold rounded-lg hover:bg-[#ffed4a] transition-colors pointer-events-auto active:scale-95"
             >
-              Play Again
+              Celebrate!
             </button>
           </div>
         </div>

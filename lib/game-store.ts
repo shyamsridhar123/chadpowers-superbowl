@@ -1,6 +1,6 @@
 // Simple game state store with React hooks
 import { create } from "zustand";
-import type { GameState, Target, PerformanceMetrics, ReceiverData, RouteType, ROUTE_DEFINITIONS, PlayStatus, ScoreMultipliers, BonusIndicator, DefenderData } from "./game-types";
+import type { GameState, Target, PerformanceMetrics, ReceiverData, RouteType, ROUTE_DEFINITIONS, PlayStatus, ScoreMultipliers, BonusIndicator, DefenderData, CelebrationData } from "./game-types";
 import { ROUTE_DEFINITIONS as ROUTES } from "./game-types";
 
 // Generate receivers with random routes for challenge mode
@@ -141,6 +141,10 @@ interface GameStore extends GameState {
   addBonusIndicator: (bonus: Omit<BonusIndicator, 'id' | 'timestamp'>) => void;
   clearBonusIndicators: () => void;
   nextPlay: () => void;
+  // Celebration
+  celebrationData: CelebrationData | null;
+  startCelebration: (reason: CelebrationData['reason']) => void;
+  endCelebration: () => void;
 }
 
 export const useGameStore = create<GameStore>((set, get) => ({
@@ -156,6 +160,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   playStatus: 'ready',
   multipliers: { accuracy: 1.0, timing: 1.0, spiral: 1.0 },
   bonusIndicators: [],
+  celebrationData: null,
   timeRemaining: 60,
   isPlaying: false,
   showTrajectory: true,
@@ -366,6 +371,42 @@ export const useGameStore = create<GameStore>((set, get) => ({
       receivers,
       defenders,
       playStartTime: null,
+      playStatus: 'ready',
+      multipliers: { accuracy: 1.0, timing: 1.0, spiral: 1.0 },
+      bonusIndicators: [],
+    });
+  },
+
+  startCelebration: (reason: CelebrationData['reason']) => {
+    const state = get();
+    const finalAccuracy = state.throws > 0 ? Math.round((state.completions / state.throws) * 100) : 0;
+    set({
+      mode: 'celebration',
+      isPlaying: false,
+      celebrationData: {
+        reason,
+        finalScore: state.score,
+        finalThrows: state.throws,
+        finalCompletions: state.completions,
+        finalAccuracy,
+        mode: reason === 'touchdown' ? 'practice' : 'challenge',
+        startTime: Date.now(),
+      },
+    });
+  },
+
+  endCelebration: () => {
+    set({
+      mode: 'menu',
+      isPlaying: false,
+      score: 0,
+      throws: 0,
+      completions: 0,
+      targets: generatePracticeTargets(),
+      receivers: [],
+      defenders: [],
+      timeRemaining: 60,
+      celebrationData: null,
       playStatus: 'ready',
       multipliers: { accuracy: 1.0, timing: 1.0, spiral: 1.0 },
       bonusIndicators: [],

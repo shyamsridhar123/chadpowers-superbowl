@@ -39,8 +39,19 @@ export interface Target {
   points: number;
 }
 
+// Celebration data for end-game scenes
+export interface CelebrationData {
+  reason: 'touchdown' | 'times_up';
+  finalScore: number;
+  finalThrows: number;
+  finalCompletions: number;
+  finalAccuracy: number;
+  mode: 'practice' | 'challenge';
+  startTime: number;
+}
+
 export interface GameState {
-  mode: 'menu' | 'practice' | 'challenge' | 'replay';
+  mode: 'menu' | 'practice' | 'challenge' | 'replay' | 'celebration';
   score: number;
   throws: number;
   completions: number;
@@ -49,6 +60,7 @@ export interface GameState {
   timeRemaining: number;
   isPlaying: boolean;
   showTrajectory: boolean;
+  celebrationData: CelebrationData | null;
 }
 
 export interface ThrowData {
