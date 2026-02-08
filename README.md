@@ -1,14 +1,10 @@
-# Superbowl game
-
-*Automatically synced with your [v0.app](https://v0.app) deployments*
+# Chad Powers Mobile Football Game
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/shyamsridhar123s-projects/v0-chadpowers-superbowl)
-[![Built with v0](https://img.shields.io/badge/Built%20with-v0.app-black?style=for-the-badge)](https://v0.app/chat/qcQ79Hi5mW0)
 
 ## Overview
 
-This repository will stay in sync with your deployed chats on [v0.app](https://v0.app).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.app](https://v0.app).
+A mobile-first 3D football game built with Next.js, React Three Fiber, and Zustand. Experience realistic quarterback gameplay with touch controls, physics-based ball mechanics, and multiple game modes. Targets 60fps on mid-range mobile devices with WebGPU/WebGL rendering.
 
 ## Agents Quick Reference
 
@@ -26,21 +22,35 @@ This project uses specialized AI agents for development. Use `@AgentName` to inv
 
 See `.github/copilot-instructions.md` for detailed routing rules.
 
+## Quick Start
+
+```bash
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Run linter
+pnpm lint
+```
+
+## Features
+
+- **Touch Controls**: Virtual joystick for QB movement, swipe-to-throw mechanics
+- **Physics Simulation**: Web Worker-based physics with realistic ball trajectories
+- **Multiple Game Modes**: Practice, Challenge, and Instant Replay
+- **3D Graphics**: React Three Fiber with WebGPU/WebGL rendering
+- **Performance Optimized**: Targets 60fps on mobile devices
+
+## Project Structure
+
+See `CLAUDE.md` for detailed architecture documentation and development guidelines.
+
 ## Deployment
 
-Your project is live at:
-
+The project is deployed on Vercel at:
 **[https://vercel.com/shyamsridhar123s-projects/v0-chadpowers-superbowl](https://vercel.com/shyamsridhar123s-projects/v0-chadpowers-superbowl)**
-
-## Build your app
-
-Continue building your app on:
-
-**[https://v0.app/chat/qcQ79Hi5mW0](https://v0.app/chat/qcQ79Hi5mW0)**
-
-## How It Works
-
-1. Create and modify your project using [v0.app](https://v0.app)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
